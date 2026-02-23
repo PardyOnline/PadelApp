@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Padel Tracker Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                    colors: {
+                        dark: '#0B0F19', panel: '#151A2A', panelHover: '#1E2538',
+                        padel: '#D4FF00', padelDim: '#D4FF0033',
+                    },
+                    boxShadow: { 'glow': '0 0 20px rgba(212, 255, 0, 0.15)' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0B0F19; color: #F8FAFC; -webkit-tap-highlight-color: transparent; }
+        .glass-panel { background: rgba(21, 26, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; }
+        .view-section { display: none; opacity: 0; transition: opacity 0.3s ease; }
+        .view-section.active { display: block; opacity: 1; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        input[type="text"], input[type="number"] { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); color: white; transition: all 0.2s; }
+        input[type="text"]:focus, input[type="number"]:focus { border-color: #D4FF00; outline: none; box-shadow: 0 0 0 2px rgba(212, 255, 0, 0.2); }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .nav-item.active { color: #D4FF00; }
+        .nav-item.active::after { content: ''; position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); width: 20px; height: 3px; background-color: #D4FF00; border-radius: 2px; box-shadow: 0 0 8px #D4FF00; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col" onload="switchView('{{ active_tab }}')">
+
+    <!-- Top Navigation -->
+    <nav class="sticky top-0 z-50 bg-dark/80 backdrop-blur-lg border-b border-white/5 px-4 py-4">
+        <div class="max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-padel flex items-center justify-center shadow-glow">
+                    <svg class="w-6 h-6 text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 22a10 10 0 100-20 10 10 0 000 20z M12 18v-6 M12 8h.01"></path></svg>
+                </div>
+                <h1 class="font-bold text-xl tracking-tight text-white">Padel<span class="text-padel">Pro</span></h1>
+            </div>
+            
+            <div class="flex bg-panel rounded-full p-1 border border-white/5 w-full sm:w-auto overflow-x-auto hide-scrollbar">
+                <button onclick="switchView('dashboard')" id="nav-dashboard" class="nav-item relative flex-1 sm:flex-none px-5 py-2 rounded-full text-sm font-semibold transition-all">Overview</button>
+                <button onclick="switchView('add-match')" id="nav-add-match" class="nav-item relative flex-1 sm:flex-none px-5 py-2 rounded-full text-sm font-semibold transition-all">Record</button>
+                <button onclick="switchView('leaderboard')" id="nav-leaderboard" class="nav-item relative flex-1 sm:flex-none px-5 py-2 rounded-full text-sm font-semibold transition-all">Rankings</button>
+                <button onclick="switchView('data')" id="nav-data" class="nav-item relative flex-1 sm:flex-none px-5 py-2 rounded-full text-sm font-semibold transition-all flex items-center justify-center gap-2">
+                    CSV
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow w-full max-w-5xl mx-auto px-4 py-8">
+
+        <!-- DASHBOARD -->
+        <section id="dashboard" class="view-section">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center text-center">
+                    <span class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-1">Total Matches</span>
+                    <span class="text-3xl font-extrabold text-white">{{ stats|map(attribute='matches')|sum / 2 | round(0, 'ceil') | int if stats else 0 }}</span>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center text-center">
+                    <span class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-1">Players</span>
+                    <span class="text-3xl font-extrabold text-white">{{ all_players|length }}</span>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center text-center hidden md:flex">
+                    <span class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-1">Most Active</span>
+                    <span class="text-xl font-bold text-padel truncate w-full">
+                        {% set active_player = stats|sort(attribute='matches', reverse=true)|first %}
+                        {{ active_player.player if active_player else '-' }}
+                    </span>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center text-center hidden md:flex">
+                    <span class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-1">Top Player</span>
+                    <span class="text-xl font-bold text-padel truncate w-full">
+                        {% set top_player = stats|sort(attribute='winRate', reverse=true)|first %}
+                        {{ top_player.player if top_player else '-' }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 glass-panel p-6 shadow-xl relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-padel opacity-5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-lg font-bold text-white tracking-wide">Win Rate Analysis</h2>
+                    </div>
+                    <div class="relative h-64 w-full"><canvas id="winRateChart"></canvas></div>
+                </div>
+
+                <div class="lg:col-span-1 glass-panel p-6 shadow-xl flex flex-col h-full">
+                    <h2 class="text-lg font-bold text-white tracking-wide mb-6">Recent Activity</h2>
+                    <div class="space-y-4 overflow-y-auto flex-grow pr-2">
+                        {% for m in recent_matches %}
+                        <div class="bg-white/5 border border-white/5 rounded-xl p-4">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-xs font-semibold text-slate-400 bg-black/20 px-2 py-1 rounded-md">{{ m.date }}</span>
+                                <span class="text-xs font-bold text-padel tracking-widest">
+                                    {{ m.set1_team1 }}-{{ m.set1_team2 }} • {{ m.set2_team1 }}-{{ m.set2_team2 }}
+                                    {% if m.set3_team1 != '' %} • {{ m.set3_team1 }}-{{ m.set3_team2 }}{% endif %}
+                                </span>
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                <div class="flex items-center justify-between px-2 py-1 rounded {{ 'bg-blue-500/10 border border-blue-500/20' if m.winner_team == 1 else '' }}">
+                                    <span class="font-medium text-sm {{ 'text-white' if m.winner_team == 1 else 'text-slate-400' }}">{{ m.team1_player1 }} & {{ m.team1_player2 }}</span>
+                                    {% if m.winner_team == 1 %} <span class="text-blue-400">★</span> {% endif %}
+                                </div>
+                                <div class="flex items-center justify-between px-2 py-1 rounded {{ 'bg-rose-500/10 border border-rose-500/20' if m.winner_team == 2 else '' }}">
+                                    <span class="font-medium text-sm {{ 'text-white' if m.winner_team == 2 else 'text-slate-400' }}">{{ m.team2_player1 }} & {{ m.team2_player2 }}</span>
+                                    {% if m.winner_team == 2 %} <span class="text-rose-400">★</span> {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-slate-500 py-10">No matches yet.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ADD MATCH -->
+        <section id="add-match" class="view-section max-w-2xl mx-auto">
+            <div class="glass-panel p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-1 bg-gradient-to-r from-transparent via-padel to-transparent opacity-50"></div>
+                
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-extrabold text-white tracking-tight mb-2">Record Match</h2>
+                    <p class="text-slate-400 text-sm">Enter the results right off the court.</p>
+                </div>
+                
+                <form action="/add" method="POST">
+                    <datalist id="player-list">
+                        {% for player in all_players %}<option value="{{ player }}">{% endfor %}
+                    </datalist>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 relative">
+                        <div class="hidden md:flex absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-dark rounded-full items-center justify-center border border-white/10 text-padel font-bold text-sm z-10">VS</div>
+                        
+                        <!-- Team 1 -->
+                        <div class="bg-white/5 rounded-2xl p-5 border border-white/5 relative overflow-hidden group hover:border-white/10 transition-colors">
+                            <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                            <h3 class="font-bold text-slate-300 mb-4 flex items-center gap-2 uppercase tracking-wider text-sm"><div class="w-2 h-2 rounded-full bg-blue-500"></div> Team 1</h3>
+                            <input type="text" name="team1_player1" class="w-full mb-3 px-4 py-3 rounded-xl text-sm font-medium" list="player-list" placeholder="First Player" required autocomplete="off">
+                            <input type="text" name="team1_player2" class="w-full px-4 py-3 rounded-xl text-sm font-medium" list="player-list" placeholder="Second Player" required autocomplete="off">
+                        </div>
+                        
+                        <!-- Team 2 -->
+                        <div class="bg-white/5 rounded-2xl p-5 border border-white/5 relative overflow-hidden group hover:border-white/10 transition-colors">
+                            <div class="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
+                            <h3 class="font-bold text-slate-300 mb-4 flex items-center gap-2 uppercase tracking-wider text-sm"><div class="w-2 h-2 rounded-full bg-rose-500"></div> Team 2</h3>
+                            <input type="text" name="team2_player1" class="w-full mb-3 px-4 py-3 rounded-xl text-sm font-medium" list="player-list" placeholder="First Player" required autocomplete="off">
+                            <input type="text" name="team2_player2" class="w-full px-4 py-3 rounded-xl text-sm font-medium" list="player-list" placeholder="Second Player" required autocomplete="off">
+                        </div>
+                    </div>
+
+                    <!-- Scores -->
+                    <div class="bg-white/5 rounded-2xl p-5 border border-white/5 mb-8">
+                        <h3 class="font-bold text-slate-300 mb-5 uppercase tracking-wider text-sm text-center">Set Scores</h3>
+                        <div class="flex flex-col gap-4">
+                            <div class="flex items-center justify-center gap-4">
+                                <span class="text-xs font-bold text-slate-500 w-10 text-right uppercase">Set 1</span>
+                                <input type="number" name="set1_team1" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0" required>
+                                <span class="text-slate-600 font-bold">:</span>
+                                <input type="number" name="set1_team2" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0" required>
+                            </div>
+                            <div class="flex items-center justify-center gap-4">
+                                <span class="text-xs font-bold text-slate-500 w-10 text-right uppercase">Set 2</span>
+                                <input type="number" name="set2_team1" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0" required>
+                                <span class="text-slate-600 font-bold">:</span>
+                                <input type="number" name="set2_team2" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0" required>
+                            </div>
+                            <div class="flex items-center justify-center gap-4 opacity-60 focus-within:opacity-100 transition-opacity">
+                                <span class="text-xs font-bold text-slate-500 w-10 text-right uppercase">Set 3<br><span class="text-[9px] font-normal leading-none">(Opt)</span></span>
+                                <input type="number" name="set3_team1" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0">
+                                <span class="text-slate-600 font-bold">:</span>
+                                <input type="number" name="set3_team2" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-padel hover:bg-[#bce600] text-dark font-extrabold text-lg py-4 px-4 rounded-xl shadow-glow transition-all">SAVE MATCH</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- LEADERBOARD -->
+        <section id="leaderboard" class="view-section">
+            <div class="glass-panel overflow-hidden shadow-2xl border border-white/10">
+                <div class="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-white/5">
+                    <h2 class="text-xl font-bold text-white">Global Rankings</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-[600px]">
+                        <thead>
+                            <tr class="text-slate-400 text-xs uppercase tracking-widest border-b border-white/5 bg-black/20">
+                                <th class="px-6 py-4 font-semibold text-center w-16">Rank</th>
+                                <th class="px-6 py-4 font-semibold">Player</th>
+                                <th class="px-6 py-4 font-semibold text-center">Matches</th>
+                                <th class="px-6 py-4 font-semibold text-center">W - L</th>
+                                <th class="px-6 py-4 font-semibold w-48">Win Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/5">
+                            {% for s in stats %}
+                            <tr class="hover:bg-white/5 transition-colors group">
+                                <td class="px-6 py-4 text-center whitespace-nowrap">
+                                    {% if loop.index == 1 %}<span class="text-xl">🥇</span>
+                                    {% elif loop.index == 2 %}<span class="text-xl">🥈</span>
+                                    {% elif loop.index == 3 %}<span class="text-xl">🥉</span>
+                                    {% else %}<span class="text-slate-500 font-bold">{{ loop.index }}</span>{% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap"><span class="font-bold text-white">{{ s.player }}</span></td>
+                                <td class="px-6 py-4 text-center text-slate-300">{{ s.matches }}</td>
+                                <td class="px-6 py-4 text-center whitespace-nowrap"><span class="text-green-400 font-bold">{{ s.wins }}</span> <span class="text-slate-600 px-1">-</span> <span class="text-rose-400 font-bold">{{ s.losses }}</span></td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-white font-bold w-12 text-right">{{ s.winRate }}%</span>
+                                        <div class="w-full bg-white/10 rounded-full h-2 overflow-hidden min-w-[100px]">
+                                            <div class="h-2 rounded-full {{ 'bg-padel' if s.winRate >= 60 else 'bg-blue-400' if s.winRate >= 40 else 'bg-rose-400' }}" style="width: {{ s.winRate }}%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="px-6 py-8 text-center text-slate-500">No ranked players yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- CSV DATA -->
+        <section id="data" class="view-section">
+            <div class="glass-panel p-6 shadow-xl">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <div><h2 class="text-xl font-bold text-white">Database (CSV)</h2></div>
+                    <div class="flex gap-3 w-full md:w-auto">
+                        <form action="/upload" method="POST" enctype="multipart/form-data" class="flex-1 md:flex-none">
+                            <label class="cursor-pointer bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium py-2.5 px-4 rounded-xl transition text-sm flex items-center justify-center h-full">
+                                <span>Import CSV</span>
+                                <input type="file" name="csv_file" accept=".csv" class="hidden" onchange="this.form.submit()">
+                            </label>
+                        </form>
+                        <a href="/download" class="flex-1 md:flex-none bg-padel hover:bg-[#bce600] text-dark font-bold py-2.5 px-4 rounded-xl shadow-glow transition text-sm flex items-center justify-center text-center">
+                            Export CSV
+                        </a>
+                    </div>
+                </div>
+                <div class="bg-[#0B0F19] rounded-xl p-4 border border-white/5 relative">
+                    <button onclick="navigator.clipboard.writeText(document.getElementById('raw-csv').innerText); this.innerText='Copied!'; setTimeout(()=>this.innerText='Copy', 1500);" class="absolute top-3 right-3 text-xs bg-white/10 text-white px-3 py-1.5 rounded-lg border border-white/5">Copy</button>
+                    <pre id="raw-csv" class="text-slate-400 font-mono text-xs overflow-x-auto h-72 whitespace-pre p-2">{{ raw_csv }}</pre>
+                </div>
+                <div class="mt-6 flex justify-end">
+                    <form action="/clear" method="POST" onsubmit="return confirm('Delete all match data? This cannot be undone.');">
+                        <button type="submit" class="text-rose-500 hover:text-rose-400 text-sm font-semibold transition bg-rose-500/10 px-4 py-2 rounded-lg">Clear Database</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active', 'bg-white/5', 'text-padel', 'text-white');
+                el.classList.add('text-slate-400');
+            });
+            document.getElementById(viewId).classList.add('active');
+            const btn = document.getElementById(`nav-${viewId}`);
+            btn.classList.add('active', 'bg-white/5');
+            btn.classList.remove('text-slate-400');
+            if(viewId !== 'data') btn.classList.add('text-padel');
+            else btn.classList.add('text-white');
+        }
+
+        // Initialize Chart.js with data passed from Flask
+        const chartData = {{ chart_data | tojson | default('[]') }};
+        const chartLabels = {{ chart_labels | tojson | default('[]') }};
+        
+        if (chartData.length > 0) {
+            Chart.defaults.color = '#64748B';
+            Chart.defaults.font.family = 'Outfit';
+            new Chart(document.getElementById('winRateChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{ data: chartData, backgroundColor: '#D4FF00', borderRadius: 6, maxBarThickness: 40 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false }, ticks: { callback: val => val + '%' } },
+                        x: { grid: { display: false, drawBorder: false } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+
+
