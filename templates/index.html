@@ -68,7 +68,7 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center text-center">
                     <span class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-1">Total Matches</span>
-                    <span class="text-3xl font-extrabold text-white">{{ stats|map(attribute='matches')|sum / 2 | round(0, 'ceil') | int if stats else 0 }}</span>
+                    <span class="text-3xl font-extrabold text-white">{{ total_matches }}</span>
                 </div>
                 <div class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center text-center">
                     <span class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-1">Players</span>

@@ -15,6 +15,10 @@ def index():
     chart_labels = [s['player'] for s in stats]
     chart_data = [s['winRate'] for s in stats]
 
+    # Calculate total matches from CSV row count (subtract 1 for header)
+    matches_df = analytics.get_matches()
+    total_matches = len(matches_df)
+
     # Get active tab from URL (defaults to dashboard)
     active_tab = request.args.get('view', 'dashboard')
 
@@ -25,6 +29,7 @@ def index():
                            chart_labels=chart_labels,
                            chart_data=chart_data,
                            raw_csv=raw_csv,
+                           total_matches=total_matches,
                            active_tab=active_tab)
 
 @app.route('/add', methods=['POST'])
