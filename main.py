@@ -82,7 +82,9 @@ def get_dashboard_data():
         rating = player_ratings[player]
         
         # A player's conservative TrueSkill is usually (mu - 3*sigma). We format it to a readable number.
-        skill_score = max(0, int((rating.mu - 3 * rating.sigma) * 100)) 
+        skill_score = max(0, int((rating.mu - 3 * rating.sigma) * 100))
+
+        conservative = round(rating.mu - 3 * rating.sigma, 2)
 
         stats_list.append({
             'player': player,
@@ -90,11 +92,13 @@ def get_dashboard_data():
             'wins': wins,
             'losses': matches - wins,
             'winRate': round((wins / matches) * 100, 1) if matches > 0 else 0,
-            'trueSkill': skill_score # We can use this on the frontend later!
+            'mu': round(rating.mu, 2),
+            'sigma': round(rating.sigma, 2),
+            'conservative': conservative,
         })
 
-    # Sort Leaderboard by TrueSkill score, then by Win Rate
-    stats_list.sort(key=lambda x: (x['trueSkill'], x['winRate']), reverse=True)
+    # Sort Leaderboard by Conservative score
+    stats_list.sort(key=lambda x: x['conservative'], reverse=True)
 
     recent_matches = df.sort_values(by='date', ascending=False).head(10).to_dict('records') if not df.empty else []
     all_players = sorted(list(player_stats.keys()))
@@ -117,6 +121,10 @@ def index():
     chart_data = [s['winRate'] for s in stats] 
     active_tab = request.args.get('view', 'dashboard')
 
+    total_matches = len(recent_matches)  # or len(df) if you return full count
+    top_ranked_player = stats[0]['player'] if stats else '-'
+    top_ranked_score = stats[0]['conservative'] if stats else None
+
     return render_template('index.html', 
                            stats=stats,
                            recent_matches=recent_matches,
@@ -124,7 +132,10 @@ def index():
                            chart_labels=chart_labels,
                            chart_data=chart_data,
                            raw_csv=raw_csv,
-                           active_tab=active_tab)
+                           active_tab=active_tab,
+                           total_matches=total_matches,
+                           top_ranked_player=top_ranked_player,
+                           top_ranked_score=top_ranked_score )
 
 @app.route('/add', methods=['POST'])
 def add_match():
@@ -171,6 +182,17 @@ def clear_data():
     with open(DATA_FILE, 'w') as f:
         f.write(CSV_HEADER + "\n")
     return redirect(url_for('index', view='dashboard'))
+
+@app.route('/rankings')
+def rankings():
+    stats, _, all_players, _ = get_dashboard_data()
+    selected_player = request.args.get('player', '').strip()
+    return render_template(
+        'ranking.html',
+        rankings=stats,
+        all_players=all_players,
+        selected_player=selected_player
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)
