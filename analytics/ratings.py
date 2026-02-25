@@ -6,6 +6,71 @@
 from .data import get_matches
 
 
+def get_elo_ratings(initial_elo=1000, k_factor=32):
+    """Computes per-player ELO from 2v2 match history."""
+    df = get_matches()
+    if df.empty:
+        return []
+
+    ratings = {}
+    records = {}
+
+    def _ensure_player(name):
+        if not name:
+            return
+        if name not in ratings:
+            ratings[name] = float(initial_elo)
+            records[name] = {'matches': 0, 'wins': 0}
+
+    for _, row in df.iterrows():
+        t1_names = [row['team1_player1'], row['team1_player2']]
+        t2_names = [row['team2_player1'], row['team2_player2']]
+        winner = int(row['winner_team'])
+
+        for name in t1_names + t2_names:
+            _ensure_player(name)
+
+        team1_elo = (ratings[t1_names[0]] + ratings[t1_names[1]]) / 2
+        team2_elo = (ratings[t2_names[0]] + ratings[t2_names[1]]) / 2
+
+        expected_t1 = 1 / (1 + 10 ** ((team2_elo - team1_elo) / 400))
+        expected_t2 = 1 - expected_t1
+
+        actual_t1 = 1.0 if winner == 1 else 0.0
+        actual_t2 = 1.0 if winner == 2 else 0.0
+
+        delta_t1 = k_factor * (actual_t1 - expected_t1)
+        delta_t2 = k_factor * (actual_t2 - expected_t2)
+
+        for name in t1_names:
+            ratings[name] += delta_t1
+            records[name]['matches'] += 1
+            if winner == 1:
+                records[name]['wins'] += 1
+
+        for name in t2_names:
+            ratings[name] += delta_t2
+            records[name]['matches'] += 1
+            if winner == 2:
+                records[name]['wins'] += 1
+
+    result = []
+    for player, elo in ratings.items():
+        matches = records[player]['matches']
+        wins = records[player]['wins']
+        losses = matches - wins
+        result.append({
+            'player': player,
+            'elo': round(elo),
+            'matches': matches,
+            'wins': wins,
+            'losses': losses,
+        })
+
+    result.sort(key=lambda x: x['elo'], reverse=True)
+    return result
+
+
 def get_trueskill_ratings():
     """Computes TrueSkill ratings from CSV match history with margin-of-victory scaling."""
     try:

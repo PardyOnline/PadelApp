@@ -21,6 +21,8 @@ def index():
 
     # TrueSkill ratings
     trueskill_stats = analytics.get_trueskill_ratings()
+    elo_stats = analytics.get_elo_ratings()
+    top_ranked_player = elo_stats[0]['player'] if elo_stats else '-'
 
     # Get active tab from URL (defaults to dashboard)
     active_tab = request.args.get('view', 'dashboard')
@@ -34,6 +36,8 @@ def index():
                            raw_csv=raw_csv,
                            total_matches=total_matches,
                            trueskill_stats=trueskill_stats,
+                           elo_stats=elo_stats,
+                           top_ranked_player=top_ranked_player,
                            active_tab=active_tab)
 
 @app.route('/add', methods=['POST'])
