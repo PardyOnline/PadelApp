@@ -8,7 +8,7 @@ app.secret_key = 'padel_secret_key' # Required for flashing messages
 @app.route('/')
 def index():
     # Load data from Pandas
-    stats, recent_matches, all_players = analytics.get_dashboard_stats()
+    stats, recent_matches, all_players = analytics.basic_player_stats()
     raw_csv = analytics.get_raw_csv()
     
     # Extract data specifically for Chart.js
@@ -18,6 +18,9 @@ def index():
     # Calculate total matches from CSV row count (subtract 1 for header)
     matches_df = analytics.get_matches()
     total_matches = len(matches_df)
+
+    # TrueSkill ratings
+    trueskill_stats = analytics.get_trueskill_ratings()
 
     # Get active tab from URL (defaults to dashboard)
     active_tab = request.args.get('view', 'dashboard')
@@ -30,6 +33,7 @@ def index():
                            chart_data=chart_data,
                            raw_csv=raw_csv,
                            total_matches=total_matches,
+                           trueskill_stats=trueskill_stats,
                            active_tab=active_tab)
 
 @app.route('/add', methods=['POST'])
