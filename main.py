@@ -1,69 +1,39 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash
-import analytics
-import os
+import trueskill
 
-app = Flask(__name__, template_folder='templates')
-app.secret_key = 'padel_secret_key' # Required for flashing messages
+# Initialize TrueSkill environment
+world = trueskill.GlobalRanking()
 
-@app.route('/')
-def index():
-    # Load data from Pandas
-    stats, recent_matches, all_players = analytics.basic_player_stats()
-    raw_csv = analytics.get_raw_csv()
-    
-    # Extract data specifically for Chart.js
-    chart_labels = [s['player'] for s in stats]
-    chart_data = [s['winRate'] for s in stats]
+class Player:
+    def __init__(self, name):
+        self.name = name
+        self.rating = world.create_rating()
 
-    # Calculate total matches from CSV row count (subtract 1 for header)
-    matches_df = analytics.get_matches()
-    total_matches = len(matches_df)
+    def update_rating(self, opponents_rating, outcome):
+        self.rating = world.rate((self.rating,), (opponents_rating,), [outcome])[0]
 
-    # TrueSkill ratings
-    trueskill_stats = analytics.get_trueskill_ratings()
-    elo_stats = analytics.get_elo_ratings()
-    top_ranked_player = elo_stats[0]['player'] if elo_stats else '-'
+class Leaderboard:
+    def __init__(self):
+        self.players = {}
 
-    # Get active tab from URL (defaults to dashboard)
-    active_tab = request.args.get('view', 'dashboard')
+    def add_player(self, player):
+        self.players[player.name] = player
 
-    return render_template('index.html', 
-                           stats=stats,
-                           recent_matches=recent_matches,
-                           all_players=all_players,
-                           chart_labels=chart_labels,
-                           chart_data=chart_data,
-                           raw_csv=raw_csv,
-                           total_matches=total_matches,
-                           trueskill_stats=trueskill_stats,
-                           elo_stats=elo_stats,
-                           top_ranked_player=top_ranked_player,
-                           active_tab=active_tab)
+    def rank_players(self):
+        return sorted(self.players.values(), key=lambda p: p.rating.mu, reverse=True)
 
-@app.route('/add', methods=['POST'])
-def add_match():
-    analytics.save_match(request.form)
-    # Redirect back to dashboard with a query parameter to open the correct tab
-    return redirect(url_for('index', view='dashboard'))
-
-@app.route('/download')
-def download_csv():
-    analytics.init_csv()
-    return send_file(analytics.DATA_FILE, as_attachment=True, download_name='padel_history.csv')
-
-@app.route('/upload', methods=['POST'])
-def upload_csv():
-    if 'csv_file' in request.files:
-        file = request.files['csv_file']
-        if file.filename.endswith('.csv'):
-            analytics.save_uploaded_csv(file)
-    return redirect(url_for('index', view='data'))
-
-@app.route('/clear', methods=['POST'])
-def clear_data():
-    analytics.clear_csv()
-    return redirect(url_for('index', view='dashboard'))
-
+# Example usage
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    leaderboard = Leaderboard()
+    player1 = Player('Alice')
+    player2 = Player('Bob')
 
+    leaderboard.add_player(player1)
+    leaderboard.add_player(player2)
+
+    # Simulated outcomes
+    player1.update_rating(player2.rating, 1)  # Alice wins against Bob
+    player2.update_rating(player1.rating, 0)  # Bob loses to Alice
+
+    ranked_players = leaderboard.rank_players()
+    for player in ranked_players:
+        print(f'{player.name}: {player.rating}')
