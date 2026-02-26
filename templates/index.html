@@ -182,27 +182,63 @@
 
                     <!-- Scores -->
                     <div class="bg-white/5 rounded-2xl p-5 border border-white/5 mb-8">
-                        <h3 class="font-bold text-slate-300 mb-5 uppercase tracking-wider text-sm text-center">Set Scores</h3>
-                        <div class="flex flex-col gap-4">
-                            <div class="flex items-center justify-center gap-4">
-                                <span class="text-xs font-bold text-slate-500 w-10 text-right uppercase">Set 1</span>
-                                <input type="number" name="set1_team1" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0" required>
-                                <span class="text-slate-600 font-bold">:</span>
-                                <input type="number" name="set1_team2" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0" required>
-                            </div>
-                            <div class="flex items-center justify-center gap-4">
-                                <span class="text-xs font-bold text-slate-500 w-10 text-right uppercase">Set 2</span>
-                                <input type="number" name="set2_team1" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0" required>
-                                <span class="text-slate-600 font-bold">:</span>
-                                <input type="number" name="set2_team2" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0" required>
-                            </div>
-                            <div class="flex items-center justify-center gap-4 opacity-60 focus-within:opacity-100 transition-opacity">
-                                <span class="text-xs font-bold text-slate-500 w-10 text-right uppercase">Set 3<br><span class="text-[9px] font-normal leading-none">(Opt)</span></span>
-                                <input type="number" name="set3_team1" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0">
-                                <span class="text-slate-600 font-bold">:</span>
-                                <input type="number" name="set3_team2" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0">
-                            </div>
+                      <div class="flex items-start justify-between gap-4 mb-4">
+                        <div>
+                          <h3 class="font-bold text-slate-200 uppercase tracking-wider text-sm">Set Scores</h3>
+                          <p class="text-xs text-slate-400 mt-1">Enter games won by each team. Winner is calculated automatically.</p>
                         </div>
+                        <label class="flex items-center gap-2 text-xs text-slate-300 bg-white/5 border border-white/10 px-3 py-2 rounded-lg">
+                          <input id="decider-toggle" type="checkbox" class="accent-[#D4FF00]" onchange="toggleDeciderSet(this.checked)">
+                          Play Set 3
+                        </label>
+                      </div>
+
+                      <div class="rounded-xl overflow-hidden border border-white/10">
+                        <div class="grid grid-cols-3 bg-black/20 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+                          <div class="px-4 py-3">Set</div>
+                          <div class="px-4 py-3 text-center text-blue-300">Team 1</div>
+                          <div class="px-4 py-3 text-center text-rose-300">Team 2</div>
+                        </div>
+
+                        <!-- Set 1 -->
+                        <div class="grid grid-cols-3 items-center border-t border-white/10">
+                          <div class="px-4 py-3 text-sm font-semibold text-slate-200">Set 1</div>
+                          <div class="px-4 py-3 flex justify-center">
+                            <input type="number" name="set1_team1" min="0" max="7" inputmode="numeric"
+                                   class="w-20 h-12 rounded-xl text-center text-xl font-bold" placeholder="0" required>
+                          </div>
+                          <div class="px-4 py-3 flex justify-center">
+                            <input type="number" name="set1_team2" min="0" max="7" inputmode="numeric"
+                                   class="w-20 h-12 rounded-xl text-center text-xl font-bold" placeholder="0" required>
+                          </div>
+                        </div>
+
+                        <!-- Set 2 -->
+                        <div class="grid grid-cols-3 items-center border-t border-white/10 bg-white/[0.02]">
+                          <div class="px-4 py-3 text-sm font-semibold text-slate-200">Set 2</div>
+                          <div class="px-4 py-3 flex justify-center">
+                            <input type="number" name="set2_team1" min="0" max="7" inputmode="numeric"
+                                   class="w-20 h-12 rounded-xl text-center text-xl font-bold" placeholder="0" required>
+                          </div>
+                          <div class="px-4 py-3 flex justify-center">
+                            <input type="number" name="set2_team2" min="0" max="7" inputmode="numeric"
+                                   class="w-20 h-12 rounded-xl text-center text-xl font-bold" placeholder="0" required>
+                          </div>
+                        </div>
+
+                        <!-- Set 3 (optional) -->
+                        <div id="set3-row" class="grid grid-cols-3 items-center border-t border-white/10 opacity-50">
+                          <div class="px-4 py-3 text-sm font-semibold text-slate-400">Set 3 (Optional)</div>
+                          <div class="px-4 py-3 flex justify-center">
+                            <input id="set3-team1" type="number" name="set3_team1" min="0" max="7" inputmode="numeric"
+                                   class="w-20 h-12 rounded-xl text-center text-xl font-bold" placeholder="-" disabled>
+                          </div>
+                          <div class="px-4 py-3 flex justify-center">
+                            <input id="set3-team2" type="number" name="set3_team2" min="0" max="7" inputmode="numeric"
+                                   class="w-20 h-12 rounded-xl text-center text-xl font-bold" placeholder="-" disabled>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     <button type="submit" class="w-full bg-padel hover:bg-[#bce600] text-dark font-extrabold text-lg py-4 px-4 rounded-xl shadow-glow transition-all">SAVE MATCH</button>
@@ -279,6 +315,23 @@
                 }
             });
         }
+      function toggleDeciderSet(enabled) {
+        const row = document.getElementById('set3-row');
+        const s3t1 = document.getElementById('set3-team1');
+        const s3t2 = document.getElementById('set3-team2');
+
+        s3t1.disabled = !enabled;
+        s3t2.disabled = !enabled;
+
+        if (!enabled) {
+          s3t1.value = '';
+          s3t2.value = '';
+          row.classList.add('opacity-50');
+        } else {
+          row.classList.remove('opacity-50');
+          s3t1.focus();
+        }
+      }
     </script>
 </body>
 </html>
