@@ -88,7 +88,7 @@
                       <span class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-1">Top Player</span>
                       <span class="text-xl font-bold text-padel truncate w-full">{{ top_ranked_player }}</span>
                       {% if top_ranked_score is not none %}
-                        <span class="text-xs text-slate-400 mt-1">ELO: {{ top_ranked_score }}</span>
+                        <span class="text-xs text-slate-400 mt-1">TrueSkill: {{ top_ranked_score }}</span>
                       {% endif %}
                     </a>
             </div>
@@ -207,46 +207,6 @@
 
                     <button type="submit" class="w-full bg-padel hover:bg-[#bce600] text-dark font-extrabold text-lg py-4 px-4 rounded-xl shadow-glow transition-all">SAVE MATCH</button>
                 </form>
-            </div>
-        </section>
-
-        <!-- LEADERBOARD -->
-        <section id="leaderboard" class="view-section">
-            <div class="glass-panel overflow-hidden shadow-2xl border border-white/10">
-                <div class="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-white/5">
-                    <h2 class="text-xl font-bold text-white">Global Rankings (ELO)</h2>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse min-w-[600px]">
-                        <thead>
-                            <tr class="text-slate-400 text-xs uppercase tracking-widest border-b border-white/5 bg-black/20">
-                                <th class="px-6 py-4 font-semibold text-center w-16">Rank</th>
-                                <th class="px-6 py-4 font-semibold">Player</th>
-                                <th class="px-6 py-4 font-semibold text-center">ELO</th>
-                                <th class="px-6 py-4 font-semibold text-center">Matches</th>
-                                <th class="px-6 py-4 font-semibold text-center">W - L</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-white/5">
-                            {% for s in elo_stats %}
-                            <tr class="hover:bg-white/5 transition-colors group">
-                                <td class="px-6 py-4 text-center whitespace-nowrap">
-                                    {% if loop.index == 1 %}<span class="text-xl">🥇</span>
-                                    {% elif loop.index == 2 %}<span class="text-xl">🥈</span>
-                                    {% elif loop.index == 3 %}<span class="text-xl">🥉</span>
-                                    {% else %}<span class="text-slate-500 font-bold">{{ loop.index }}</span>{% endif %}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap"><span class="font-bold text-white">{{ s.player }}</span></td>
-                                <td class="px-6 py-4 text-center whitespace-nowrap"><span class="font-bold text-padel">{{ s.elo }}</span></td>
-                                <td class="px-6 py-4 text-center text-slate-300">{{ s.matches }}</td>
-                                <td class="px-6 py-4 text-center whitespace-nowrap"><span class="text-green-400 font-bold">{{ s.wins }}</span> <span class="text-slate-600 px-1">-</span> <span class="text-rose-400 font-bold">{{ s.losses }}</span></td>
-                            </tr>
-                            {% else %}
-                            <tr><td colspan="5" class="px-6 py-8 text-center text-slate-500">No ranked players yet.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
             </div>
         </section>
 
