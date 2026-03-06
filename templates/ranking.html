@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Padel Rankings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0B0F19; color: #F8FAFC; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <main class="max-w-6xl mx-auto px-4 py-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <div>
+                <h1 class="text-3xl font-extrabold">Rankings</h1>
+                <p class="text-slate-400 text-sm">Sorted by TrueSkill conservative value (mu - 3*sigma).</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="/" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-semibold">Back Home</a>
+            </div>
+        </div>
+
+        <form method="GET" action="/rankings" class="mb-6">
+            <label for="player" class="block text-sm text-slate-300 mb-2">See your rank</label>
+            <div class="flex gap-2">
+                <select id="player" name="player" class="w-full md:w-80 rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white">
+                    <option value="">-- Select player --</option>
+                    {% for p in all_players %}
+                        <option value="{{ p }}" {% if selected_player == p %}selected{% endif %}>{{ p }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="px-4 py-2 rounded-lg bg-lime-300 text-black font-bold">Show</button>
+            </div>
+        </form>
+
+        <div class="overflow-x-auto rounded-xl border border-white/10">
+            <table class="w-full min-w-[760px] text-left">
+                <thead class="bg-white/5 text-slate-300 text-xs uppercase tracking-wider">
+                    <tr>
+                        <th class="px-4 py-3 text-center">Rank</th>
+                        <th class="px-4 py-3">Player</th>
+                        <th class="px-4 py-3 text-center">Conservative</th>
+                        <th class="px-4 py-3 text-center">Mu</th>
+                        <th class="px-4 py-3 text-center">Sigma</th>
+                        <th class="px-4 py-3 text-center">Matches</th>
+                        <th class="px-4 py-3 text-center">W-L</th>
+                        <th class="px-4 py-3 text-center">Win %</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/10">
+                    {% for r in rankings %}
+                    {% set is_me = (selected_player and r.player == selected_player) %}
+                    <tr class="{% if is_me %}bg-lime-300/10{% else %}bg-transparent{% endif %}">
+                        <td class="px-4 py-3 text-center font-bold">{{ loop.index }}</td>
+                        <td class="px-4 py-3 font-semibold">
+                            {{ r.player }}
+                            {% if is_me %}<span class="ml-2 text-xs text-lime-300 font-bold">(You)</span>{% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-center font-bold text-lime-300">{{ r.conservative }}</td>
+                        <td class="px-4 py-3 text-center">{{ r.mu }}</td>
+                        <td class="px-4 py-3 text-center">{{ r.sigma }}</td>
+                        <td class="px-4 py-3 text-center">{{ r.matches }}</td>
+                        <td class="px-4 py-3 text-center">{{ r.wins }} - {{ r.losses }}</td>
+                        <td class="px-4 py-3 text-center">{{ r.winRate }}%</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="px-4 py-8 text-center text-slate-400">No ranking data yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+</html>

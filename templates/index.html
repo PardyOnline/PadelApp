@@ -52,7 +52,7 @@
             <div class="flex bg-panel rounded-full p-1 border border-white/5 w-full sm:w-auto overflow-x-auto hide-scrollbar">
                 <button onclick="switchView('dashboard')" id="nav-dashboard" class="nav-item relative flex-1 sm:flex-none px-5 py-2 rounded-full text-sm font-semibold transition-all">Overview</button>
                 <button onclick="switchView('add-match')" id="nav-add-match" class="nav-item relative flex-1 sm:flex-none px-5 py-2 rounded-full text-sm font-semibold transition-all">Record</button>
-                <button onclick="switchView('leaderboard')" id="nav-leaderboard" class="nav-item relative flex-1 sm:flex-none px-5 py-2 rounded-full text-sm font-semibold transition-all">Rankings</button>
+                <a href="{{ url_for('rankings') }}" id="nav-leaderboard" class="nav-item relative flex-1 sm:flex-none px-5 py-2 rounded-full text-sm font-semibold transition-all text-center">Rankings</a>
                 <button onclick="switchView('data')" id="nav-data" class="nav-item relative flex-1 sm:flex-none px-5 py-2 rounded-full text-sm font-semibold transition-all flex items-center justify-center gap-2">
                     CSV
                 </button>
@@ -81,12 +81,16 @@
                         {{ active_player.player if active_player else '-' }}
                     </span>
                 </div>
-                <div class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center text-center hidden md:flex">
-                    <span class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-1">Top Player</span>
-                    <span class="text-xl font-bold text-padel truncate w-full">
-                        {{ top_ranked_player }}
-                    </span>
-                </div>
+                <a
+                      href="{{ url_for('rankings', player=top_ranked_player) }}"
+                      class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center text-center hidden md:flex hover:border-padel/40 hover:shadow-glow transition-all"
+                    >
+                      <span class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-1">Top Player</span>
+                      <span class="text-xl font-bold text-padel truncate w-full">{{ top_ranked_player }}</span>
+                      {% if top_ranked_score is not none %}
+                        <span class="text-xs text-slate-400 mt-1">TrueSkill: {{ top_ranked_score }}</span>
+                      {% endif %}
+                    </a>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -144,93 +148,101 @@
                         {% for player in all_players %}<option value="{{ player }}">{% endfor %}
                     </datalist>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 relative">
-                        <div class="hidden md:flex absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-dark rounded-full items-center justify-center border border-white/10 text-padel font-bold text-sm z-10">VS</div>
-                        
+                    <div class="relative mb-8">
+                      <!-- center vertical line -->
+                      <div class="hidden md:block absolute left-1/2 top-2 bottom-2 w-px bg-gradient-to-b from-transparent via-padel/70 to-transparent transform -translate-x-1/2"></div>
+
+                      <!-- VS badge -->
+                      <div class="hidden md:flex absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-padel text-dark font-extrabold items-center justify-center shadow-glow border border-padel/80">
+                        VS
+                      </div>
+
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Team 1 -->
-                        <div class="bg-white/5 rounded-2xl p-5 border border-white/5 relative overflow-hidden group hover:border-white/10 transition-colors">
-                            <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-                            <h3 class="font-bold text-slate-300 mb-4 flex items-center gap-2 uppercase tracking-wider text-sm"><div class="w-2 h-2 rounded-full bg-blue-500"></div> Team 1</h3>
-                            <input type="text" name="team1_player1" class="w-full mb-3 px-4 py-3 rounded-xl text-sm font-medium" list="player-list" placeholder="First Player" required autocomplete="off">
-                            <input type="text" name="team1_player2" class="w-full px-4 py-3 rounded-xl text-sm font-medium" list="player-list" placeholder="Second Player" required autocomplete="off">
+                        <div class="bg-blue-500/10 rounded-2xl p-5 border border-blue-400/30 relative overflow-hidden group hover:border-blue-300/60 hover:shadow-xl hover:shadow-blue-500/10 transition-all">
+                          <div class="absolute top-0 left-0 w-1.5 h-full bg-blue-400"></div>
+                          <h3 class="font-bold text-blue-200 mb-4 flex items-center gap-2 uppercase tracking-wider text-sm">
+                            <div class="w-2 h-2 rounded-full bg-blue-400"></div> Team 1
+                          </h3>
+                          <input type="text" name="team1_player1" class="w-full mb-3 px-4 py-3 rounded-xl text-sm font-medium" list="player-list" placeholder="First Player" required autocomplete="off">
+                          <input type="text" name="team1_player2" class="w-full px-4 py-3 rounded-xl text-sm font-medium" list="player-list" placeholder="Second Player" required autocomplete="off">
                         </div>
-                        
+
                         <!-- Team 2 -->
-                        <div class="bg-white/5 rounded-2xl p-5 border border-white/5 relative overflow-hidden group hover:border-white/10 transition-colors">
-                            <div class="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
-                            <h3 class="font-bold text-slate-300 mb-4 flex items-center gap-2 uppercase tracking-wider text-sm"><div class="w-2 h-2 rounded-full bg-rose-500"></div> Team 2</h3>
-                            <input type="text" name="team2_player1" class="w-full mb-3 px-4 py-3 rounded-xl text-sm font-medium" list="player-list" placeholder="First Player" required autocomplete="off">
-                            <input type="text" name="team2_player2" class="w-full px-4 py-3 rounded-xl text-sm font-medium" list="player-list" placeholder="Second Player" required autocomplete="off">
+                        <div class="bg-rose-500/10 rounded-2xl p-5 border border-rose-400/30 relative overflow-hidden group hover:border-rose-300/60 hover:shadow-xl hover:shadow-rose-500/10 transition-all">
+                          <div class="absolute top-0 left-0 w-1.5 h-full bg-rose-400"></div>
+                          <h3 class="font-bold text-rose-200 mb-4 flex items-center gap-2 uppercase tracking-wider text-sm">
+                            <div class="w-2 h-2 rounded-full bg-rose-400"></div> Team 2
+                          </h3>
+                          <input type="text" name="team2_player1" class="w-full mb-3 px-4 py-3 rounded-xl text-sm font-medium" list="player-list" placeholder="First Player" required autocomplete="off">
+                          <input type="text" name="team2_player2" class="w-full px-4 py-3 rounded-xl text-sm font-medium" list="player-list" placeholder="Second Player" required autocomplete="off">
                         </div>
+                      </div>
                     </div>
 
                     <!-- Scores -->
                     <div class="bg-white/5 rounded-2xl p-5 border border-white/5 mb-8">
-                        <h3 class="font-bold text-slate-300 mb-5 uppercase tracking-wider text-sm text-center">Set Scores</h3>
-                        <div class="flex flex-col gap-4">
-                            <div class="flex items-center justify-center gap-4">
-                                <span class="text-xs font-bold text-slate-500 w-10 text-right uppercase">Set 1</span>
-                                <input type="number" name="set1_team1" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0" required>
-                                <span class="text-slate-600 font-bold">:</span>
-                                <input type="number" name="set1_team2" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0" required>
-                            </div>
-                            <div class="flex items-center justify-center gap-4">
-                                <span class="text-xs font-bold text-slate-500 w-10 text-right uppercase">Set 2</span>
-                                <input type="number" name="set2_team1" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0" required>
-                                <span class="text-slate-600 font-bold">:</span>
-                                <input type="number" name="set2_team2" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0" required>
-                            </div>
-                            <div class="flex items-center justify-center gap-4 opacity-60 focus-within:opacity-100 transition-opacity">
-                                <span class="text-xs font-bold text-slate-500 w-10 text-right uppercase">Set 3<br><span class="text-[9px] font-normal leading-none">(Opt)</span></span>
-                                <input type="number" name="set3_team1" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0">
-                                <span class="text-slate-600 font-bold">:</span>
-                                <input type="number" name="set3_team2" class="w-16 h-14 text-xl rounded-xl text-center font-bold" min="0">
-                            </div>
+                      <div class="flex items-start justify-between gap-4 mb-4">
+                        <div>
+                          <h3 class="font-bold text-slate-200 uppercase tracking-wider text-sm">Set Scores</h3>
+                          <p class="text-xs text-slate-400 mt-1">Enter games won by each team. Winner is calculated automatically.</p>
                         </div>
+                        <label class="flex items-center gap-2 text-xs text-slate-300 bg-white/5 border border-white/10 px-3 py-2 rounded-lg">
+                          <input id="decider-toggle" type="checkbox" class="accent-[#D4FF00]" onchange="toggleDeciderSet(this.checked)">
+                          Play Set 3
+                        </label>
+                      </div>
+
+                      <div class="rounded-xl overflow-hidden border border-white/10">
+                        <div class="grid grid-cols-3 bg-black/20 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+                          <div class="px-4 py-3">Set</div>
+                          <div class="px-4 py-3 text-center text-blue-300">Team 1</div>
+                          <div class="px-4 py-3 text-center text-rose-300">Team 2</div>
+                        </div>
+
+                        <!-- Set 1 -->
+                        <div class="grid grid-cols-3 items-center border-t border-white/10">
+                          <div class="px-4 py-3 text-sm font-semibold text-slate-200">Set 1</div>
+                          <div class="px-4 py-3 flex justify-center">
+                            <input type="number" name="set1_team1" min="0" max="7" inputmode="numeric"
+                                   class="w-20 h-12 rounded-xl text-center text-xl font-bold" placeholder="0" required>
+                          </div>
+                          <div class="px-4 py-3 flex justify-center">
+                            <input type="number" name="set1_team2" min="0" max="7" inputmode="numeric"
+                                   class="w-20 h-12 rounded-xl text-center text-xl font-bold" placeholder="0" required>
+                          </div>
+                        </div>
+
+                        <!-- Set 2 -->
+                        <div class="grid grid-cols-3 items-center border-t border-white/10 bg-white/[0.02]">
+                          <div class="px-4 py-3 text-sm font-semibold text-slate-200">Set 2</div>
+                          <div class="px-4 py-3 flex justify-center">
+                            <input type="number" name="set2_team1" min="0" max="7" inputmode="numeric"
+                                   class="w-20 h-12 rounded-xl text-center text-xl font-bold" placeholder="0" required>
+                          </div>
+                          <div class="px-4 py-3 flex justify-center">
+                            <input type="number" name="set2_team2" min="0" max="7" inputmode="numeric"
+                                   class="w-20 h-12 rounded-xl text-center text-xl font-bold" placeholder="0" required>
+                          </div>
+                        </div>
+
+                        <!-- Set 3 (optional) -->
+                        <div id="set3-row" class="grid grid-cols-3 items-center border-t border-white/10 opacity-50">
+                          <div class="px-4 py-3 text-sm font-semibold text-slate-400">Set 3 (Optional)</div>
+                          <div class="px-4 py-3 flex justify-center">
+                            <input id="set3-team1" type="number" name="set3_team1" min="0" max="7" inputmode="numeric"
+                                   class="w-20 h-12 rounded-xl text-center text-xl font-bold" placeholder="-" disabled>
+                          </div>
+                          <div class="px-4 py-3 flex justify-center">
+                            <input id="set3-team2" type="number" name="set3_team2" min="0" max="7" inputmode="numeric"
+                                   class="w-20 h-12 rounded-xl text-center text-xl font-bold" placeholder="-" disabled>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     <button type="submit" class="w-full bg-padel hover:bg-[#bce600] text-dark font-extrabold text-lg py-4 px-4 rounded-xl shadow-glow transition-all">SAVE MATCH</button>
                 </form>
-            </div>
-        </section>
-
-        <!-- LEADERBOARD -->
-        <section id="leaderboard" class="view-section">
-            <div class="glass-panel overflow-hidden shadow-2xl border border-white/10">
-                <div class="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-white/5">
-                    <h2 class="text-xl font-bold text-white">Global Rankings (ELO)</h2>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse min-w-[600px]">
-                        <thead>
-                            <tr class="text-slate-400 text-xs uppercase tracking-widest border-b border-white/5 bg-black/20">
-                                <th class="px-6 py-4 font-semibold text-center w-16">Rank</th>
-                                <th class="px-6 py-4 font-semibold">Player</th>
-                                <th class="px-6 py-4 font-semibold text-center">ELO</th>
-                                <th class="px-6 py-4 font-semibold text-center">Matches</th>
-                                <th class="px-6 py-4 font-semibold text-center">W - L</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-white/5">
-                            {% for s in elo_stats %}
-                            <tr class="hover:bg-white/5 transition-colors group">
-                                <td class="px-6 py-4 text-center whitespace-nowrap">
-                                    {% if loop.index == 1 %}<span class="text-xl">🥇</span>
-                                    {% elif loop.index == 2 %}<span class="text-xl">🥈</span>
-                                    {% elif loop.index == 3 %}<span class="text-xl">🥉</span>
-                                    {% else %}<span class="text-slate-500 font-bold">{{ loop.index }}</span>{% endif %}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap"><span class="font-bold text-white">{{ s.player }}</span></td>
-                                <td class="px-6 py-4 text-center whitespace-nowrap"><span class="font-bold text-padel">{{ s.elo }}</span></td>
-                                <td class="px-6 py-4 text-center text-slate-300">{{ s.matches }}</td>
-                                <td class="px-6 py-4 text-center whitespace-nowrap"><span class="text-green-400 font-bold">{{ s.wins }}</span> <span class="text-slate-600 px-1">-</span> <span class="text-rose-400 font-bold">{{ s.losses }}</span></td>
-                            </tr>
-                            {% else %}
-                            <tr><td colspan="5" class="px-6 py-8 text-center text-slate-500">No ranked players yet.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
             </div>
         </section>
 
@@ -303,6 +315,23 @@
                 }
             });
         }
+      function toggleDeciderSet(enabled) {
+        const row = document.getElementById('set3-row');
+        const s3t1 = document.getElementById('set3-team1');
+        const s3t2 = document.getElementById('set3-team2');
+
+        s3t1.disabled = !enabled;
+        s3t2.disabled = !enabled;
+
+        if (!enabled) {
+          s3t1.value = '';
+          s3t2.value = '';
+          row.classList.add('opacity-50');
+        } else {
+          row.classList.remove('opacity-50');
+          s3t1.focus();
+        }
+      }
     </script>
 </body>
 </html>
