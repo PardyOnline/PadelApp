@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from flask import Flask, render_template, request, redirect, url_for, send_file
 from analytics import get_all_dashboard_data, save_match, clear_csv, save_uploaded_csv, DATA_FILE, init_csv
 
@@ -57,4 +58,6 @@ def rankings():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+=======
 
